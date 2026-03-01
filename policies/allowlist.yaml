@@ -1,0 +1,28 @@
+# Local policy fallback when OpenFGA is not configured.
+# Used for can_edit_feature(user, tenant, featureKey) check.
+#
+# allow_all: true  -> everyone can edit (use only for dev)
+# allowlist: list of { user, tenant?, feature? }
+#   - user: user id or "*" for any
+#   - tenant: optional, or "*" for any
+#   - feature: optional, or "*" for any
+
+allow_all: false
+
+allowlist:
+  # Example: user alice can edit any feature in tenant acme
+  - user: alice
+    tenant: acme
+    feature: "*"
+  # Example: user bob can edit feature "my-flag" in any tenant
+  - user: bob
+    tenant: "*"
+    feature: my-flag
+  # Example: admin can edit everything
+  - user: admin
+    tenant: "*"
+    feature: "*"
+  # Test user for automated tests
+  - user: test-user
+    tenant: "*"
+    feature: "*"

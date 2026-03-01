@@ -1,0 +1,46 @@
+# Unleash Governance Proxy - Docker Compose
+#
+# Usage:
+#   docker-compose up -d
+#
+# Point proxy to existing Unleash:
+#   Set UNLEASH_BASE_URL and UNLEASH_API_TOKEN in .env or below
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: unleash_governance
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  proxy:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/unleash_governance
+      JWT_SECRET: dev-secret-change-in-production
+      # Point to your Unleash instance (default: local Unleash on 4242)
+      UNLEASH_BASE_URL: ${UNLEASH_BASE_URL:-http://host.docker.internal:4242}
+      UNLEASH_API_TOKEN: ${UNLEASH_API_TOKEN:-}
+      # OpenFGA (optional - leave unset to use local policy)
+      # OPENFGA_API_URL: http://openfga:8080
+      # OPENFGA_STORE_ID: your-store-id
+    depends_on:
+      postgres:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  postgres_data:

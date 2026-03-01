@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "unleash-governance-proxy"
+version = "0.1.0"
+description = "Policy and audit layer for Unleash feature flags"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+    { name = "Rifat Alam Pomil", email = "rifatpomil@gmail.com" }
+]
+dependencies = []
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["."]
+env = [
+    "JWT_SECRET=test-secret",
+    "DATABASE_URL=postgresql://postgres:postgres@localhost:5433/unleash_governance",
+]
