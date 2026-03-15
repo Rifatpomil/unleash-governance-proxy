@@ -2,17 +2,25 @@
 
 A **policy and audit layer** for [Unleash](https://www.getunleash.io/) feature flags.
 
-**Author:** Rifat Alam Pomil Enforces authorization (OpenFGA or local policy), immutable audit logging, and a change request workflow.
+**Author:** Rifat Alam Pomil. Enforces authorization (OpenFGA or local policy), immutable audit logging, and a change request workflow.
 
 ## Features
 
 - **Change Request Workflow**: Create → Approve → Apply
-- **JWT Authentication**: All endpoints require a valid Bearer token
+- **JWT Authentication**: All endpoints require a valid Bearer token (except health, metrics, dashboard, AI status public)
 - **Authorization**: OpenFGA or local YAML allowlist (`can_edit_feature`) with hot-reload
 - **Audit Logging**: Append-only Postgres table with actor, action, before/after payload
 - **Idempotency**: `Idempotency-Key` header for safe retries; expired keys purged hourly
 - **Production-ready**: Structured logging (structlog), Prometheus metrics, rate limiting
 - **Unleash client**: Retries with exponential backoff for 5xx and network errors
+- **AI-powered insights** (optional, with `OPENAI_API_KEY`):
+  - Summarization of change requests and audit logs
+  - Risk scoring and explanation for change requests
+  - Natural language query for audit (e.g. "last 7 days", "by user@example.com")
+  - Flag name suggestions from description
+  - Rollout strategy suggestions
+  - Anomaly detection on audit volume (statistical)
+- **Dashboard**: Slick web UI at `/` for health, AI status, summaries, NL query, and flag suggestions
 
 ## Quick Start
 
@@ -118,6 +126,25 @@ curl "http://localhost:8080/v1/audit?actor=alice&action=change_request_applied&l
 curl http://localhost:8080/metrics
 ```
 
+### 7. Dashboard and AI
+
+- Open **http://localhost:8080/** for the governance dashboard (health, AI status, summaries, NL query, flag suggestions).
+- Set a valid JWT in the dashboard to use protected AI endpoints.
+
+```bash
+# Public AI status (no auth)
+curl http://localhost:8080/v1/ai/status/public
+
+# AI insights (requires JWT)
+curl "http://localhost:8080/v1/ai/insights" -H "Authorization: Bearer $JWT"
+
+# Suggest flag name (requires JWT)
+curl -X POST http://localhost:8080/v1/ai/suggest/flag-name \
+  -H "Authorization: Bearer $JWT" \
+  -H "Content-Type: application/json" \
+  -d '{"description": "Enable dark mode for settings"}'
+```
+
 ## Configuration
 
 | Variable | Default | Description |
@@ -131,6 +158,8 @@ curl http://localhost:8080/metrics
 | `OPENFGA_STORE_ID` | (none) | OpenFGA store ID |
 | `POLICY_FILE_PATH` | `policies/allowlist.yaml` | Local policy fallback (hot-reload on change) |
 | `RATE_LIMIT_PER_MINUTE` | `60` | Max requests/min per IP (0 = high limit) |
+| `OPENAI_API_KEY` | (none) | Optional: enables LLM summarization, risk explanation, NL query, suggestions |
+| `AI_FEATURES_ENABLED` | `true` | Set to `false` to disable AI features even when key is set |
 | `LOG_FORMAT` | (human) | Set to `json` for structured JSON logs |
 | `LOG_LEVEL` | `INFO` | Logging level |
 
