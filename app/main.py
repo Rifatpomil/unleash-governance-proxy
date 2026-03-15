@@ -4,8 +4,11 @@ import asyncio
 import time
 from contextlib import asynccontextmanager
 
+from pathlib import Path
+
 from fastapi import FastAPI, Request
-from fastapi.responses import Response
+from fastapi.responses import FileResponse, Response
+from fastapi.staticfiles import StaticFiles
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -15,7 +18,7 @@ from app.config import get_settings
 from app.db import init_db
 from app.logging_config import configure_logging, get_logger
 from app.metrics import REQUEST_COUNT, REQUEST_LATENCY, metrics_handler
-from app.routers import audit, change_requests, flags
+from app.routers import ai, audit, change_requests, flags
 
 logger = get_logger(__name__)
 
@@ -84,9 +87,19 @@ def create_app() -> FastAPI:
     def health():
         return {"status": "ok"}
 
+    static_dir = Path(__file__).resolve().parent / "static"
+    if static_dir.is_dir():
+        app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
+        @app.get("/")
+        @limiter.exempt
+        def dashboard():
+            return FileResponse(static_dir / "index.html")
+
     app.include_router(flags.router)
     app.include_router(change_requests.router)
     app.include_router(audit.router)
+    app.include_router(ai.router)
 
     # Metrics middleware
     @app.middleware("http")
