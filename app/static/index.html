@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Unleash Governance Proxy – Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/dashboard.css" />
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="logo">Unleash <span>Governance</span> Proxy</div>
+      <nav>
+        <a href="/docs" target="_blank" rel="noopener">API Docs</a>
+        <a href="/redoc" target="_blank" rel="noopener">ReDoc</a>
+        <a href="/health" target="_blank" rel="noopener">Health</a>
+      </nav>
+      <div class="auth-bar">
+        <input type="password" id="token" placeholder="JWT token (Bearer)" autocomplete="off" />
+        <button type="button" class="btn btn-primary" id="save-token">Use token</button>
+        <span class="status-badge status-ok" id="api-status"><span class="status-dot"></span> API</span>
+      </div>
+    </header>
+
+    <section class="grid grid-2" id="status-cards">
+      <div class="card">
+        <h2><span class="icon">◆</span> Health</h2>
+        <div class="card-content" id="health-text">—</div>
+      </div>
+      <div class="card">
+        <h2><span class="icon">◇</span> AI Status</h2>
+        <div class="card-content" id="ai-status-text">—</div>
+      </div>
+    </section>
+
+    <h2 class="section-title">AI Insights</h2>
+    <section class="grid grid-2">
+      <div class="card">
+        <h2><span class="icon">▸</span> Change requests summary</h2>
+        <div class="card-content placeholder" id="cr-summary">Load with token, then refresh.</div>
+        <div class="card-actions">
+          <button type="button" class="btn btn-ghost" id="load-cr-summary">Refresh</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2><span class="icon">▸</span> Audit summary</h2>
+        <div class="card-content placeholder" id="audit-summary">Load with token, then refresh.</div>
+        <div class="card-actions">
+          <button type="button" class="btn btn-ghost" id="load-audit-summary">Refresh</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2><span class="icon">▸</span> Anomalies</h2>
+        <div class="card-content placeholder" id="anomalies-text">—</div>
+        <div class="card-actions">
+          <button type="button" class="btn btn-ghost" id="load-anomalies">Refresh</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2><span class="icon">▸</span> Full insights</h2>
+        <div class="card-content placeholder" id="full-insights">One-click summary of change requests, audit, and anomalies.</div>
+        <div class="card-actions">
+          <button type="button" class="btn btn-primary" id="load-insights">Load insights</button>
+        </div>
+      </div>
+    </section>
+
+    <h2 class="section-title">Natural language query</h2>
+    <div class="card">
+      <h2><span class="icon">◈</span> Ask about audit / changes</h2>
+      <div class="form-group">
+        <label for="nl-query">e.g. "last 7 days", "changes by user@example.com"</label>
+        <input type="text" id="nl-query" placeholder="Show changes from last 7 days" />
+      </div>
+      <button type="button" class="btn btn-primary" id="run-nl-query">Run query</button>
+      <div class="result-box" id="nl-result" style="display:none;"></div>
+      <div class="error-msg" id="nl-error"></div>
+    </div>
+
+    <h2 class="section-title">Flag name suggestion</h2>
+    <div class="card">
+      <h2><span class="icon">◈</span> Suggest flag key from description</h2>
+      <div class="form-group">
+        <label for="flag-desc">Feature description</label>
+        <input type="text" id="flag-desc" placeholder="Enable dark mode for settings page" />
+      </div>
+      <button type="button" class="btn btn-primary" id="suggest-flag">Suggest name</button>
+      <div class="result-box" id="flag-result" style="display:none;"></div>
+      <div class="error-msg" id="flag-error"></div>
+    </div>
+
+    <footer class="footer">
+      Unleash Governance Proxy – Policy and audit layer for feature flags. Author: Rifat Alam Pomil.
+    </footer>
+  </div>
+  <script src="/static/js/dashboard.js"></script>
+</body>
+</html>
