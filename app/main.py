@@ -66,7 +66,7 @@ def create_app() -> FastAPI:
             "Enforces authorization (OpenFGA or local policy), "
             "immutable audit logging, and change request workflows."
         ),
-        version="0.1.0",
+        version="0.2.0",
         lifespan=lifespan,
         docs_url="/docs",
         redoc_url="/redoc",
