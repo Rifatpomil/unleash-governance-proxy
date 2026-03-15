@@ -203,6 +203,16 @@ def test_list_audit_logs(
     assert any(e["action"] == "change_request_created" for e in data["entries"])
 
 
+def test_ai_status_public_no_auth(client: TestClient):
+    """GET /v1/ai/status/public does not require auth."""
+    r = client.get("/v1/ai/status/public")
+    assert r.status_code == 200
+    data = r.json()
+    assert "ai_available" in data
+    assert "features" in data
+    assert isinstance(data["features"], list)
+
+
 def test_apply_requires_idempotency_key(
     client: TestClient,
     auth_headers: dict,
