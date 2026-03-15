@@ -76,6 +76,16 @@ class Settings(BaseSettings):
         description="How long to retain idempotency keys",
     )
 
+    # AI / LLM (optional)
+    openai_api_key: Optional[str] = Field(
+        default=None,
+        description="OpenAI API key for AI features (summarization, insights, NL query)",
+    )
+    ai_features_enabled: bool = Field(
+        default=True,
+        description="Enable AI-powered features when API key is set",
+    )
+
     @field_validator("unleash_base_url")
     @classmethod
     def strip_trailing_slash(cls, v: str) -> str:
