@@ -22,6 +22,8 @@ A **policy and audit layer** for [Unleash](https://www.getunleash.io/) feature f
   - Anomaly detection on audit volume (statistical)
 - **Dashboard**: Slick web UI at `/` for health, AI status, summaries, NL query, and flag suggestions
 
+See [docs/AI_FEATURES.md](docs/AI_FEATURES.md) for a full list of AI endpoints.
+
 ## Quick Start
 
 ### Prerequisites
