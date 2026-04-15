@@ -67,3 +67,42 @@ class ChangeRequestApplyResponse(BaseModel):
     change_request_id: str
     status: str = "applied"
     unleash_result: Optional[dict] = None
+
+
+# --- List responses ---
+
+
+class ChangeRequestListItem(BaseModel):
+    id: str
+    flag_key: str
+    project_id: str
+    status: str
+    created_by: str
+    created_at: Optional[datetime] = None
+    approved_at: Optional[datetime] = None
+    applied_at: Optional[datetime] = None
+
+
+class ChangeRequestListResponse(BaseModel):
+    total: int
+    limit: int
+    offset: int
+    items: list[ChangeRequestListItem]
+
+
+class AuditLogEntry(BaseModel):
+    id: int
+    actor: str
+    action: str
+    resource_type: str
+    resource_id: Optional[str] = None
+    before_payload: Optional[dict] = None
+    after_payload: Optional[dict] = None
+    created_at: Optional[datetime] = None
+
+
+class AuditLogListResponse(BaseModel):
+    total: int
+    limit: int
+    offset: int
+    entries: list[AuditLogEntry]

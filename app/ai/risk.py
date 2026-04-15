@@ -1,13 +1,13 @@
-"""Risk scoring for change requests (heuristic + optional LLM enhancement)."""
+"""Risk scoring: deterministic heuristic + optional LLM explanation via JSON mode."""
 
-from typing import Any, Optional
+from typing import Any
+
+from app.ai.llm import complete_json, is_llm_available
+from app.ai.prompts import RISK_JSON_INSTRUCTIONS
 
 
 def _heuristic_risk_score(change_request: dict[str, Any]) -> float:
-    """
-    Compute a 0-1 risk score from change request content.
-    Higher = riskier (e.g. enabling in prod, many strategy changes).
-    """
+    """0-1 risk score from change-request content. Higher = riskier."""
     score = 0.0
     desired = change_request.get("desired_changes") or {}
     strategies = change_request.get("strategies") or []
@@ -23,27 +23,40 @@ def _heuristic_risk_score(change_request: dict[str, Any]) -> float:
     return min(1.0, score)
 
 
-def get_risk_score(change_request: dict[str, Any]) -> dict[str, Any]:
-    """
-    Return risk score and optional LLM explanation.
-    """
+def _level(score: float) -> str:
+    return "high" if score >= 0.6 else "medium" if score >= 0.3 else "low"
+
+
+async def get_risk_score(change_request: dict[str, Any]) -> dict[str, Any]:
+    """Return risk score, deterministic level, optional LLM concerns."""
     score = _heuristic_risk_score(change_request)
-    explanation: Optional[str] = None
-
-    from app.ai.llm import complete, is_llm_available
-    if is_llm_available():
-        prompt = (
-            f"Feature flag change: {change_request.get('flag_key', '?')}. "
-            f"Desired changes: {change_request.get('desired_changes', {})}. "
-            f"Environment: {change_request.get('environment', 'default')}. "
-            "In 1-2 sentences, what is the main risk or consideration?"
-        )
-        explanation = complete(prompt, max_tokens=150)
-        if explanation:
-            explanation = explanation.strip()
-
-    return {
+    out: dict[str, Any] = {
         "score": round(score, 2),
-        "level": "high" if score >= 0.6 else "medium" if score >= 0.3 else "low",
-        "explanation": explanation,
+        "level": _level(score),
+        "explanation": None,
+        "concerns": [],
+        "source": "heuristic",
     }
+
+    if not is_llm_available():
+        return out
+
+    prompt = (
+        f"Flag: {change_request.get('flag_key', '?')}\n"
+        f"Environment: {change_request.get('environment', 'default')}\n"
+        f"Desired changes: {change_request.get('desired_changes', {})}\n"
+        f"Strategies: {change_request.get('strategies', [])}\n\n"
+        f"{RISK_JSON_INSTRUCTIONS}"
+    )
+    result, parsed = await complete_json(prompt, feature="risk_explain", max_output_tokens=200)
+    if not result.ok or not parsed:
+        return out
+
+    explanation = parsed.get("explanation")
+    concerns = parsed.get("concerns") or []
+    if isinstance(explanation, str):
+        out["explanation"] = explanation.strip()
+    if isinstance(concerns, list):
+        out["concerns"] = [str(c) for c in concerns if isinstance(c, (str, int, float))][:5]
+    out["source"] = "heuristic+llm"
+    return out

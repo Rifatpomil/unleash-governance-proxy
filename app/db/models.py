@@ -75,6 +75,11 @@ class AuditLog(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
+    # Hash chain: prev_hash commits to the previous row's row_hash. Tampering with
+    # any past row invalidates every subsequent hash — detectable by verify_chain().
+    prev_hash: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    row_hash: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
+
     __table_args__ = (
         Index("ix_audit_logs_actor_created", "actor", "created_at"),
         Index("ix_audit_logs_action_created", "action", "created_at"),

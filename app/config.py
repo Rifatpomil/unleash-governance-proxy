@@ -32,9 +32,22 @@ class Settings(BaseSettings):
         default="change-me-in-production-use-secure-secret",
         description="Secret for JWT verification",
     )
-    jwt_algorithm: str = Field(default="HS256", description="JWT algorithm")
+    jwt_algorithm: str = Field(default="HS256", description="JWT algorithm (HS256, RS256, ES256, ...)")
     jwt_audience: Optional[str] = Field(default=None, description="JWT audience claim")
     jwt_issuer: Optional[str] = Field(default=None, description="JWT issuer claim")
+    # When set, the auth layer validates tokens using keys fetched from this JWKS URL
+    # (rotating identity-provider keys) instead of the static `jwt_secret`. The `kid`
+    # header selects the key; keys are cached and refreshed on miss.
+    jwt_jwks_url: Optional[str] = Field(
+        default=None,
+        description="JWKS URL for asymmetric verification (e.g. https://issuer/.well-known/jwks.json)",
+    )
+    jwt_jwks_cache_seconds: int = Field(
+        default=300,
+        ge=30,
+        le=86400,
+        description="TTL for cached JWKS keys",
+    )
 
     # Unleash
     unleash_base_url: str = Field(
@@ -84,6 +97,69 @@ class Settings(BaseSettings):
     ai_features_enabled: bool = Field(
         default=True,
         description="Enable AI-powered features when API key is set",
+    )
+    llm_model: str = Field(
+        default="gpt-4o-mini",
+        description="OpenAI chat model used for all AI features",
+    )
+    llm_timeout_seconds: float = Field(
+        default=15.0,
+        ge=1.0,
+        le=120.0,
+        description="Per-request timeout for LLM calls",
+    )
+    llm_max_retries: int = Field(
+        default=2,
+        ge=0,
+        le=5,
+        description="Retry count for transient LLM failures (429/5xx)",
+    )
+    llm_max_output_tokens: int = Field(
+        default=400,
+        ge=16,
+        le=4096,
+        description="Cap on tokens per LLM completion (cost guard)",
+    )
+    llm_monthly_budget_usd: float = Field(
+        default=0.0,
+        ge=0.0,
+        description="Soft budget cap per process uptime in USD (0 = disabled)",
+    )
+
+    # Trusted proxy hops for X-Forwarded-For (0 = do not trust XFF at all)
+    trusted_proxy_hops: int = Field(
+        default=0,
+        ge=0,
+        le=10,
+        description="Number of trusted proxy hops; XFF right-most N are trusted",
+    )
+
+    # Distributed rate limiter backend (optional). When set, slowapi uses Redis
+    # so limits are shared across replicas. Leave empty for in-process only.
+    rate_limit_storage_uri: Optional[str] = Field(
+        default=None,
+        description="slowapi storage URI, e.g. redis://redis:6379/0 or memcached://...",
+    )
+
+    # OpenTelemetry (optional). When the OTLP endpoint is set, the app emits
+    # traces for FastAPI, httpx, and SQLAlchemy spans.
+    otel_service_name: str = Field(default="unleash-governance-proxy")
+    otel_exporter_otlp_endpoint: Optional[str] = Field(
+        default=None,
+        description="OTLP/HTTP endpoint, e.g. http://otel-collector:4318",
+    )
+    otel_traces_sampler_ratio: float = Field(
+        default=1.0,
+        ge=0.0,
+        le=1.0,
+        description="Parent-based ratio sampler for traces",
+    )
+
+    # Audit hash chain: when enabled each audit row's hash commits to the prior row,
+    # turning tampering into a detectable chain break. Verification endpoint is gated.
+    audit_hash_chain_enabled: bool = Field(
+        default=True,
+        description="Compute SHA-256 hash chain on audit inserts",
     )
 
     @field_validator("unleash_base_url")

@@ -5,14 +5,16 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from app.audit import verify_chain
 from app.auth import get_current_user
 from app.db import get_db
 from app.db.models import AuditLog
+from app.models import AuditLogListResponse
 
 router = APIRouter(prefix="/v1/audit", tags=["audit"])
 
 
-@router.get("")
+@router.get("", response_model=AuditLogListResponse)
 def list_audit_logs(
     actor: Optional[str] = Query(None, description="Filter by actor"),
     action: Optional[str] = Query(None, description="Filter by action"),
@@ -52,3 +54,17 @@ def list_audit_logs(
             for e in entries
         ],
     }
+
+
+@router.get("/verify")
+def verify_audit_chain(
+    limit: Optional[int] = Query(None, ge=1, le=100_000),
+    user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Verify the SHA-256 hash chain. Returns {ok, checked, first_broken_id?}.
+
+    Running this periodically (or exposing it to SOC/compliance tooling) turns
+    "immutable log" from a claim into a verifiable property.
+    """
+    return verify_chain(db, limit=limit)

@@ -24,10 +24,23 @@ pyyaml>=6.0.1
 structlog>=24.1.0,<25.0.0
 prometheus-client>=0.19.0,<0.21.0
 slowapi>=0.1.9,<0.2.0
+# Redis client enables distributed rate-limit storage (RATE_LIMIT_STORAGE_URI=redis://...)
+redis>=5.0.0,<6.0.0
+
+# OpenTelemetry (optional; activated when OTEL_EXPORTER_OTLP_ENDPOINT is set)
+opentelemetry-api>=1.24.0
+opentelemetry-sdk>=1.24.0
+opentelemetry-exporter-otlp-proto-http>=1.24.0
+opentelemetry-instrumentation-fastapi>=0.45b0
+opentelemetry-instrumentation-httpx>=0.45b0
+opentelemetry-instrumentation-sqlalchemy>=0.45b0
 
 # AI / LLM (optional - AI features work with heuristics when not set)
-openai>=1.12.0,<2.0.0
+# We call the OpenAI REST API directly via httpx to stay fully async; no SDK needed.
 
 # Testing
 pytest>=7.4.0,<9.0.0
 pytest-asyncio>=0.23.0,<0.25.0
+
+# Load testing (dev/optional)
+locust>=2.20.0; python_version >= "3.11"

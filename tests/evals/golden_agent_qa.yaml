@@ -1,0 +1,51 @@
+# Golden Q&A for the audit investigator agent.
+#
+# Each case is executed against a pre-seeded DB. The scorer checks:
+#   - required_tools: set of tool names the agent SHOULD call (any order)
+#   - forbidden_tools: tools the agent must NOT call
+#   - answer_contains: substrings the final answer must include (case-insensitive)
+#   - answer_excludes: substrings the final answer must NOT include
+#
+# Cases are deliberately small; add more before shipping prompt changes.
+
+prompt_version_min: "2026-04-13.1"
+
+cases:
+  - id: count_by_actor
+    seed:
+      audit:
+        - {actor: alice@example.com, action: change_request_created}
+        - {actor: alice@example.com, action: change_request_applied}
+        - {actor: bob@example.com,   action: change_request_created}
+    question: "How many audit events did alice@example.com create?"
+    required_tools: [count_audit_events]
+    forbidden_tools: []
+    answer_contains: ["2"]
+    answer_excludes: ["3", "error"]
+    judge_rubric: "Alice has 2 audit events total; any correct answer must cite the count 2."
+    judge_min_score: 4
+
+  - id: list_recent_applied
+    seed:
+      audit:
+        - {actor: alice@example.com, action: change_request_applied}
+        - {actor: alice@example.com, action: change_request_applied}
+        - {actor: carol@example.com, action: change_request_created}
+    question: "List the most recent change_request_applied events."
+    required_tools: [list_audit_events]
+    answer_contains: ["alice@example.com"]
+    answer_excludes: ["carol"]
+    judge_rubric: "Only alice@example.com has applied events; answer must mention alice and not carol."
+    judge_min_score: 4
+
+  - id: cr_status_breakdown
+    seed:
+      change_requests:
+        - {flag_key: f1, status: pending,  created_by: alice@example.com}
+        - {flag_key: f2, status: approved, created_by: alice@example.com}
+        - {flag_key: f3, status: applied,  created_by: bob@example.com}
+    question: "Break down change requests by status."
+    required_tools: [count_change_requests_by_status]
+    answer_contains: ["pending", "approved", "applied"]
+    judge_rubric: "There is exactly 1 pending, 1 approved, and 1 applied change request."
+    judge_min_score: 4

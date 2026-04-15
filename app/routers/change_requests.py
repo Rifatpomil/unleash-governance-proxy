@@ -15,13 +15,17 @@ from app.idempotency import (
     require_idempotency_key,
     store_idempotency_response,
 )
-from app.models import ChangeRequestApplyResponse, ChangeRequestResponse
+from app.models import (
+    ChangeRequestApplyResponse,
+    ChangeRequestListResponse,
+    ChangeRequestResponse,
+)
 from app.unleash_client import UnleashClient, get_unleash_client
 
 router = APIRouter(prefix="/v1/change-requests", tags=["change-requests"])
 
 
-@router.get("", response_model=None)
+@router.get("", response_model=ChangeRequestListResponse)
 def list_change_requests(
     status_filter: Optional[str] = Query(None, alias="status", description="Filter by status"),
     flag_key: Optional[str] = Query(None, description="Filter by flag key"),

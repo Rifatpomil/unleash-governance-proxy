@@ -1,18 +1,27 @@
-"""Anomaly detection on governance metrics (request/audit volume)."""
+"""Anomaly detection on governance metrics (audit volume).
 
-from collections import defaultdict
+Uses a z-score over hourly buckets. For Postgres we use `date_trunc`; on other
+dialects (SQLite in tests) we bucket in Python so local dev works without surprises.
+"""
+
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.db.models import AuditLog
+from app.logging_config import get_logger
 
-def _get_audit_counts_by_hour(db: Session, hours: int = 72) -> list[tuple[datetime, int]]:
-    """Return (hour_bucket, count) for last N hours. Uses PostgreSQL date_trunc; on SQLite returns empty."""
+logger = get_logger(__name__)
+
+
+def _get_audit_counts_by_hour(db: Session, hours: int) -> list[tuple[datetime, int]]:
     since = datetime.now(timezone.utc) - timedelta(hours=hours)
-    from app.db.models import AuditLog
-    try:
+    dialect = db.bind.dialect.name if db.bind is not None else ""
+
+    if dialect == "postgresql":
         rows = (
             db.query(
                 func.date_trunc("hour", AuditLog.created_at).label("hour"),
@@ -23,9 +32,16 @@ def _get_audit_counts_by_hour(db: Session, hours: int = 72) -> list[tuple[dateti
             .order_by("hour")
             .all()
         )
-        return [(r.hour, r.cnt) for r in rows] if rows else []
-    except Exception:
-        return []
+        return [(r.hour, r.cnt) for r in rows]
+
+    rows = db.query(AuditLog.created_at).filter(AuditLog.created_at >= since).all()
+    buckets: Counter[datetime] = Counter()
+    for (ts,) in rows:
+        if ts is None:
+            continue
+        bucket = ts.replace(minute=0, second=0, microsecond=0)
+        buckets[bucket] += 1
+    return sorted(buckets.items())
 
 
 def _z_score(value: float, mean: float, std: float) -> float:
@@ -35,10 +51,7 @@ def _z_score(value: float, mean: float, std: float) -> float:
 
 
 def detect_anomalies(db: Session, hours: int = 72) -> dict[str, Any]:
-    """
-    Detect anomalous activity in audit volume (e.g. spike in changes).
-    Returns recent counts, baseline stats, and flagged hours.
-    """
+    """Detect anomalous activity in audit volume (e.g. spike in changes)."""
     buckets = _get_audit_counts_by_hour(db, hours=hours)
     if len(buckets) < 3:
         return {
@@ -65,8 +78,10 @@ def detect_anomalies(db: Session, hours: int = 72) -> dict[str, Any]:
 
     return {
         "anomalies": anomalies,
-        "summary": f"Checked {len(buckets)} hours; {len(anomalies)} anomaly(ies) detected."
-        if anomalies else "No significant anomalies in the period.",
+        "summary": (
+            f"Checked {len(buckets)} hours; {len(anomalies)} anomaly(ies) detected."
+            if anomalies else "No significant anomalies in the period."
+        ),
         "period_hours": hours,
         "mean_events_per_hour": round(mean, 2),
         "std_events_per_hour": round(std, 2),
